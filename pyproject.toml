@@ -1,0 +1,43 @@
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers", 
+    "--strict-config",
+    "--cov=f1_pipeline",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml"
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+    "aws: AWS-specific tests",
+    "azure: Azure-specific tests", 
+    "gcp: GCP-specific tests",
+    "network: Tests requiring network access"
+]
+
+# Ignore warnings from dependencies
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore:.*urllib3.*:DeprecationWarning"
+]
+
+# Test discovery patterns
+norecursedirs = [
+    ".*",
+    "build",
+    "dist",
+    "*.egg",
+    "venv",
+    "env",
+    "__pycache__"
+]
