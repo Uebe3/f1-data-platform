@@ -1,0 +1,43 @@
+# Google Cloud Platform (GCP) Configuration Example
+environment: gcp
+
+storage:
+  provider: gcp
+  bucket_name: "my-f1-data-bucket"
+  project_id: "my-gcp-project"
+  
+  # Choose one authentication method:
+  
+  # Option 1: Use Application Default Credentials (recommended for CI/CD)
+  use_default_credentials: true
+  
+  # Option 2: Use service account key file
+  # credentials_path: "/path/to/service-account-key.json"
+
+database:
+  provider: gcp_sql
+  instance_connection_name: "my-gcp-project:us-central1:f1-pipeline-db"
+  database: "f1_pipeline"
+  username: "f1admin"
+  password: "${F1_DB_PASSWORD}"  # Use environment variable
+  db_type: "postgresql"  # or "mysql"
+  port: 5432
+
+# Compute configuration for GCP Cloud Run/Functions (optional)
+compute:
+  provider: gcp_batch
+  project_id: "my-gcp-project"
+  region: "us-central1"
+  service_account_email: "f1-pipeline@my-gcp-project.iam.gserviceaccount.com"
+  # credentials_path: "/path/to/service-account-key.json"  # Optional
+
+openf1:
+  base_url: "https://api.openf1.org/v1"
+  rate_limit_delay: 0.1
+  max_retries: 5  # Higher for production
+  timeout: 60
+  years_to_fetch: [2019, 2020, 2021, 2022, 2023]
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"

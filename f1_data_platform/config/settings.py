@@ -27,6 +27,8 @@ class StorageConfig(BaseModel):
     
     # GCP Cloud Storage
     project_id: Optional[str] = Field(None, description="GCP project ID")
+    credentials_path: Optional[str] = Field(None, description="Path to GCP service account credentials JSON")
+    use_default_credentials: Optional[bool] = Field(True, description="Use Application Default Credentials")
 
     @validator('provider')
     def validate_provider(cls, v):
@@ -46,6 +48,8 @@ class DatabaseConfig(BaseModel):
     # Cloud databases
     endpoint: Optional[str] = Field(None, description="Database endpoint")
     server: Optional[str] = Field(None, description="Database server (Azure SQL)")
+    instance_connection_name: Optional[str] = Field(None, description="GCP Cloud SQL instance connection name (project:region:instance)")
+    db_type: Optional[str] = Field("postgresql", description="GCP Cloud SQL database type (postgresql or mysql)")
     database: Optional[str] = Field(None, description="Database name")
     username: Optional[str] = Field(None, description="Database username")
     password: Optional[str] = Field(None, description="Database password")
@@ -84,9 +88,11 @@ class ComputeConfig(BaseModel):
     resource_group: Optional[str] = Field(None, description="Azure resource group")
     subscription_id: Optional[str] = Field(None, description="Azure subscription ID")
     
-    # GCP Batch
+    # GCP Batch/Cloud Run
     project_id: Optional[str] = Field(None, description="GCP project ID")
-    region: Optional[str] = Field(None, description="GCP region")
+    region: Optional[str] = Field("us-central1", description="GCP region")
+    service_account_email: Optional[str] = Field(None, description="GCP service account email")
+    credentials_path: Optional[str] = Field(None, description="Path to GCP service account credentials JSON")
 
 
 class LoggingConfig(BaseModel):
@@ -163,7 +169,9 @@ class Settings(BaseModel):
             })
         elif self.environment == "gcp":
             config.update({
-                "project_id": self.storage.project_id
+                "project_id": self.storage.project_id,
+                "region": self.compute.region,
+                "credentials_path": self.storage.credentials_path or self.compute.credentials_path
             })
         
         return config

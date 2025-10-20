@@ -29,7 +29,7 @@ def get_cloud_provider(provider_type: str, config: Dict[str, Any]) -> CloudProvi
             from .providers.gcp import GCPCloudProvider
             return GCPCloudProvider(config)
         except ImportError:
-            raise ImportError("GCP dependencies not installed. Run: pip install google-cloud-storage google-auth")
+            raise ImportError("GCP dependencies not installed. Run: pip install google-cloud-storage google-auth psycopg2-binary cloud-sql-python-connector")
     
     else:
         raise ValueError(f"Unsupported cloud provider: {provider_type}")

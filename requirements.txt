@@ -22,6 +22,7 @@ azure-storage-blob>=12.17.0  # Azure
 azure-identity>=1.13.0
 google-cloud-storage>=2.10.0  # GCP
 google-auth>=2.22.0
+cloud-sql-python-connector>=1.4.0  # GCP Cloud SQL
 
 # Data processing
 pyarrow>=12.0.0
