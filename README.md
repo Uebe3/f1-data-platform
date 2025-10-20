@@ -2,6 +2,15 @@
 
 A comprehensive, cloud-agnostic data analytics platform for Formula 1 racing data. This system extracts real-time and historical F1 data from the OpenF1 API, processes it through multiple analytical layers, and prepares features for AI/ML applications.
 
+### Technical Leadership in Action
+
+This platform demonstrates my approach to solving complex data engineering challenges through principled architecture and iterative delivery. Having transitioned into leadership roles, I continue to leverage hands-on technical experience to guide teams through architectural decisions, technical debt management, and scaling challenges.
+
+**Leadership Through Technical Expertise:**
+- **Solution Architecture**: Transform ambiguous requirements into clear technical specifications
+- **Risk Mitigation**: Build systems that gracefully handle failure and change
+- **Technical Mentorship**: Create learning opportunities through well-structured, documented code
+
 ## 🏎️ Features
 
 - **Cloud-Agnostic Architecture**: Deploy on AWS, Azure, GCP, or run locally
