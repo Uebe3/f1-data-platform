@@ -1,0 +1,46 @@
+# Azure Configuration Example
+environment: azure
+
+storage:
+  provider: azure
+  account_name: "myf1storageaccount"
+  container_name: "f1-data"
+  # Choose one authentication method:
+  
+  # Option 1: Use connection string
+  connection_string: "DefaultEndpointsProtocol=https;AccountName=myf1storageaccount;AccountKey=your-account-key;EndpointSuffix=core.windows.net"
+  
+  # Option 2: Use account key
+  # account_key: "your-storage-account-key"
+  
+  # Option 3: Use Azure default credential (managed identity, service principal, etc.)
+  # use_credential: true
+
+database:
+  provider: azure_sql
+  server: "f1-pipeline-server.database.windows.net"
+  database: "f1_pipeline"
+  username: "f1admin"
+  password: "${F1_DB_PASSWORD}"  # Use environment variable
+  port: 1433
+  driver: "ODBC Driver 17 for SQL Server"
+
+# Compute configuration for Azure Batch (optional)
+compute:
+  provider: azure_batch
+  batch_account_name: "f1pipelinebatch"
+  batch_account_url: "https://f1pipelinebatch.eastus.batch.azure.com"
+  batch_account_key: "${AZURE_BATCH_KEY}"  # Use environment variable
+  resource_group: "f1-pipeline-rg"
+  subscription_id: "${AZURE_SUBSCRIPTION_ID}"  # Use environment variable
+
+openf1:
+  base_url: "https://api.openf1.org/v1"
+  rate_limit_delay: 0.1
+  max_retries: 5  # Higher for production
+  timeout: 60
+  years_to_fetch: [2019, 2020, 2021, 2022, 2023]
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"

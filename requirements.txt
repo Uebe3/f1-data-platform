@@ -13,14 +13,17 @@ alembic>=1.11.0
 # Database drivers
 psycopg2-binary>=2.9.0  # PostgreSQL
 pymongo>=4.4.0          # MongoDB
+pyodbc>=4.0.34          # SQL Server / Azure SQL Database
 sqlite3>=3.0.0          # SQLite (built-in)
 
 # Cloud providers
-boto3>=1.28.0           # AWS
+boto3>=1.28.0           # AWS (S3, Lambda, Athena, Glue)
+botocore>=1.31.0        # AWS core library
 azure-storage-blob>=12.17.0  # Azure
 azure-identity>=1.13.0
 google-cloud-storage>=2.10.0  # GCP
 google-auth>=2.22.0
+cloud-sql-python-connector>=1.4.0  # GCP Cloud SQL
 
 # Data processing
 pyarrow>=12.0.0

@@ -15,13 +15,21 @@ def get_cloud_provider(provider_type: str, config: Dict[str, Any]) -> CloudProvi
         from .providers.aws import AWSCloudProvider
         return AWSCloudProvider(config)
     
+    elif provider_type.lower() == "aws_modern":
+        # Modern AWS with Athena, Lambda, and Glue
+        try:
+            from .providers.aws_modern import ModernAWSCloudProvider
+            return ModernAWSCloudProvider(config)
+        except ImportError:
+            raise ImportError("AWS dependencies not installed. Run: pip install boto3")
+    
     elif provider_type.lower() == "azure":
         # Import here to avoid dependency issues if Azure SDK not installed
         try:
             from .providers.azure import AzureCloudProvider
             return AzureCloudProvider(config)
         except ImportError:
-            raise ImportError("Azure dependencies not installed. Run: pip install azure-storage-blob azure-identity")
+            raise ImportError("Azure dependencies not installed. Run: pip install azure-storage-blob azure-identity pyodbc")
     
     elif provider_type.lower() == "gcp":
         # Import here to avoid dependency issues if GCP SDK not installed
@@ -29,7 +37,7 @@ def get_cloud_provider(provider_type: str, config: Dict[str, Any]) -> CloudProvi
             from .providers.gcp import GCPCloudProvider
             return GCPCloudProvider(config)
         except ImportError:
-            raise ImportError("GCP dependencies not installed. Run: pip install google-cloud-storage google-auth")
+            raise ImportError("GCP dependencies not installed. Run: pip install google-cloud-storage google-auth psycopg2-binary cloud-sql-python-connector")
     
     else:
         raise ValueError(f"Unsupported cloud provider: {provider_type}")
@@ -46,4 +54,4 @@ class CloudProviderFactory:
     @staticmethod
     def get_supported_providers() -> list:
         """Get list of supported cloud providers."""
-        return ["local", "aws", "azure", "gcp"]
+        return ["local", "aws", "aws_modern", "azure", "gcp"]
