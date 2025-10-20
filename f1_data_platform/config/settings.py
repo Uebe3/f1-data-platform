@@ -40,7 +40,7 @@ class StorageConfig(BaseModel):
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
-    provider: str = Field(..., description="Database provider (local, aws_rds, azure_sql, gcp_sql)")
+    provider: str = Field(..., description="Database provider (local, aws_rds, azure_sql, gcp_sql, aws_athena)")
     
     # Local SQLite
     db_path: Optional[str] = Field(None, description="SQLite database path")
@@ -55,10 +55,15 @@ class DatabaseConfig(BaseModel):
     password: Optional[str] = Field(None, description="Database password")
     port: Optional[int] = Field(5432, description="Database port")
     driver: Optional[str] = Field("ODBC Driver 17 for SQL Server", description="ODBC driver for Azure SQL")
+    
+    # AWS Athena (Modern)
+    athena_workgroup: Optional[str] = Field(None, description="Athena workgroup name")
+    athena_database: Optional[str] = Field(None, description="Athena/Glue database name")
+    athena_output_location: Optional[str] = Field(None, description="S3 location for Athena query results")
 
     @validator('provider')
     def validate_provider(cls, v):
-        allowed = ['local', 'aws_rds', 'azure_sql', 'gcp_sql']
+        allowed = ['local', 'aws_rds', 'azure_sql', 'gcp_sql', 'aws_athena']
         if v.lower() not in allowed:
             raise ValueError(f'Provider must be one of {allowed}')
         return v.lower()
@@ -75,11 +80,16 @@ class OpenF1Config(BaseModel):
 
 class ComputeConfig(BaseModel):
     """Compute configuration for batch processing."""
-    provider: Optional[str] = Field("local", description="Compute provider (local, aws_batch, azure_batch, gcp_batch)")
+    provider: Optional[str] = Field("local", description="Compute provider (local, aws_batch, azure_batch, gcp_batch, aws_lambda)")
     
     # AWS Batch
     job_queue: Optional[str] = Field(None, description="AWS Batch job queue")
     job_definition: Optional[str] = Field(None, description="AWS Batch job definition")
+    
+    # AWS Lambda (Modern)
+    lambda_function_name: Optional[str] = Field(None, description="Lambda function name for data processing")
+    lambda_timeout: Optional[int] = Field(900, description="Lambda function timeout in seconds")
+    lambda_memory: Optional[int] = Field(1024, description="Lambda function memory in MB")
     
     # Azure Batch
     batch_account_name: Optional[str] = Field(None, description="Azure Batch account name")
@@ -161,6 +171,13 @@ class Settings(BaseModel):
         if self.environment == "aws":
             config.update({
                 "region": self.storage.region
+            })
+        elif self.environment == "aws_modern":
+            config.update({
+                "region": self.storage.region,
+                "athena_workgroup": self.database.athena_workgroup,
+                "athena_database": self.database.athena_database,
+                "athena_output_location": self.database.athena_output_location
             })
         elif self.environment == "azure":
             config.update({

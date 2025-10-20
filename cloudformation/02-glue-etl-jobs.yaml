@@ -1,0 +1,323 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'F1 Data Platform - Glue ETL Jobs for Data Processing'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+    
+  ProjectName:
+    Type: String
+    Default: f1-data-platform
+    Description: Project name for resource naming
+    
+  DataLakeBucket:
+    Type: String
+    Description: S3 Data Lake bucket name (from foundation stack)
+    
+  GlueDatabase:
+    Type: String
+    Description: Glue database name (from foundation stack)
+    
+  GlueServiceRoleArn:
+    Type: String
+    Description: Glue service role ARN (from foundation stack)
+
+Resources:
+  # Glue Job for Processing Raw F1 Data
+  F1RawDataProcessorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-raw-data-processor-${Environment}'
+      Description: 'Process raw F1 data from OpenF1 API into structured format'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 1
+      Timeout: 60
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/raw_data_processor.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-enable'
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--enable-spark-ui': 'true'
+        '--spark-event-logs-path': !Sub 's3://${DataLakeBucket}/spark-logs/'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Job for F1 Meetings Data
+  F1MeetingsProcessorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-meetings-processor-${Environment}'
+      Description: 'Process F1 meetings data into Iceberg format'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxRetries: 1
+      Timeout: 30
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/meetings_processor.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-enable'
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Job for F1 Sessions Data
+  F1SessionsProcessorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-sessions-processor-${Environment}'
+      Description: 'Process F1 sessions data into Iceberg format'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxRetries: 1
+      Timeout: 30
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/sessions_processor.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-enable'
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Job for F1 Drivers Data
+  F1DriversProcessorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-drivers-processor-${Environment}'
+      Description: 'Process F1 drivers data into Iceberg format'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxRetries: 1
+      Timeout: 30
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/drivers_processor.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-enable'
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Job for F1 Laps Data
+  F1LapsProcessorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-laps-processor-${Environment}'
+      Description: 'Process F1 laps data into Iceberg format'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxRetries: 2  # More retries for large lap datasets
+      Timeout: 120   # Longer timeout for lap data processing
+      WorkerType: G.1X
+      NumberOfWorkers: 5  # More workers for large datasets
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/laps_processor.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-enable'
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Job for Analytics Aggregation
+  F1AnalyticsAggregatorJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub '${ProjectName}-analytics-aggregator-${Environment}'
+      Description: 'Create analytics aggregations from processed F1 data'
+      Role: !Ref GlueServiceRoleArn
+      GlueVersion: '4.0'
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxRetries: 1
+      Timeout: 60
+      WorkerType: G.1X
+      NumberOfWorkers: 3
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${DataLakeBucket}/glue-scripts/analytics_aggregator.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--job-language': 'python'
+        '--job-bookmark-option': 'job-bookmark-disable'  # Always recompute analytics
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--DATABASE_NAME': !Ref GlueDatabase
+        '--DATA_LAKE_BUCKET': !Ref DataLakeBucket
+        '--ENVIRONMENT': !Ref Environment
+
+  # Glue Crawler for Raw Data Discovery
+  F1RawDataCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub '${ProjectName}-raw-data-crawler-${Environment}'
+      Description: 'Discover raw F1 data structure'
+      Role: !Ref GlueServiceRoleArn
+      DatabaseName: !Ref GlueDatabase
+      TablePrefix: 'raw_'
+      Targets:
+        S3Targets:
+          - Path: !Sub 's3://${DataLakeBucket}/raw-data/'
+      SchemaChangePolicy:
+        UpdateBehavior: UPDATE_IN_DATABASE
+        DeleteBehavior: DELETE_FROM_DATABASE
+      Configuration: |
+        {
+          "Version": 1.0,
+          "CrawlerOutput": {
+            "Partitions": { "AddOrUpdateBehavior": "InheritFromTable" }
+          }
+        }
+
+  # Glue Crawler for Processed Data Discovery
+  F1ProcessedDataCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub '${ProjectName}-processed-data-crawler-${Environment}'
+      Description: 'Discover processed F1 Iceberg tables'
+      Role: !Ref GlueServiceRoleArn
+      DatabaseName: !Ref GlueDatabase
+      TablePrefix: 'f1_'
+      Targets:
+        S3Targets:
+          - Path: !Sub 's3://${DataLakeBucket}/processed-data/'
+      SchemaChangePolicy:
+        UpdateBehavior: UPDATE_IN_DATABASE
+        DeleteBehavior: DELETE_FROM_DATABASE
+      Configuration: |
+        {
+          "Version": 1.0,
+          "CrawlerOutput": {
+            "Partitions": { "AddOrUpdateBehavior": "InheritFromTable" }
+          }
+        }
+
+  # Glue Workflow for Orchestrating Data Pipeline
+  F1DataPipelineWorkflow:
+    Type: AWS::Glue::Workflow
+    Properties:
+      Name: !Sub '${ProjectName}-data-pipeline-${Environment}'
+      Description: 'Orchestrate F1 data processing pipeline'
+
+  # Workflow Trigger for Raw Data Processing
+  RawDataProcessingTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name: !Sub '${ProjectName}-raw-data-trigger-${Environment}'
+      Type: ON_DEMAND
+      WorkflowName: !Ref F1DataPipelineWorkflow
+      Actions:
+        - JobName: !Ref F1RawDataProcessorJob
+
+  # Workflow Trigger for Processing Individual Data Types
+  ProcessedDataTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name: !Sub '${ProjectName}-processed-data-trigger-${Environment}'
+      Type: CONDITIONAL
+      WorkflowName: !Ref F1DataPipelineWorkflow
+      Predicate:
+        Conditions:
+          - LogicalOperator: EQUALS
+            JobName: !Ref F1RawDataProcessorJob
+            State: SUCCEEDED
+      Actions:
+        - JobName: !Ref F1MeetingsProcessorJob
+        - JobName: !Ref F1SessionsProcessorJob
+        - JobName: !Ref F1DriversProcessorJob
+        - JobName: !Ref F1LapsProcessorJob
+
+  # Workflow Trigger for Analytics Aggregation
+  AnalyticsTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name: !Sub '${ProjectName}-analytics-trigger-${Environment}'
+      Type: CONDITIONAL
+      WorkflowName: !Ref F1DataPipelineWorkflow
+      Predicate:
+        Logical: AND
+        Conditions:
+          - LogicalOperator: EQUALS
+            JobName: !Ref F1MeetingsProcessorJob
+            State: SUCCEEDED
+          - LogicalOperator: EQUALS
+            JobName: !Ref F1SessionsProcessorJob
+            State: SUCCEEDED
+          - LogicalOperator: EQUALS
+            JobName: !Ref F1DriversProcessorJob
+            State: SUCCEEDED
+          - LogicalOperator: EQUALS
+            JobName: !Ref F1LapsProcessorJob
+            State: SUCCEEDED
+      Actions:
+        - JobName: !Ref F1AnalyticsAggregatorJob
+
+  # CloudWatch Log Groups for Glue Jobs
+  GlueJobLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws-glue/jobs/${ProjectName}-${Environment}'
+      RetentionInDays: 30
+
+Outputs:
+  RawDataProcessorJobName:
+    Description: 'Raw data processor Glue job name'
+    Value: !Ref F1RawDataProcessorJob
+    Export:
+      Name: !Sub '${AWS::StackName}-RawDataProcessor'
+      
+  DataPipelineWorkflowName:
+    Description: 'Data pipeline workflow name'
+    Value: !Ref F1DataPipelineWorkflow
+    Export:
+      Name: !Sub '${AWS::StackName}-DataPipelineWorkflow'
+      
+  ProcessedDataCrawlerName:
+    Description: 'Processed data crawler name'
+    Value: !Ref F1ProcessedDataCrawler
+    Export:
+      Name: !Sub '${AWS::StackName}-ProcessedDataCrawler'
