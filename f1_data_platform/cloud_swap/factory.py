@@ -21,7 +21,7 @@ def get_cloud_provider(provider_type: str, config: Dict[str, Any]) -> CloudProvi
             from .providers.azure import AzureCloudProvider
             return AzureCloudProvider(config)
         except ImportError:
-            raise ImportError("Azure dependencies not installed. Run: pip install azure-storage-blob azure-identity")
+            raise ImportError("Azure dependencies not installed. Run: pip install azure-storage-blob azure-identity pyodbc")
     
     elif provider_type.lower() == "gcp":
         # Import here to avoid dependency issues if GCP SDK not installed

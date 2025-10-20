@@ -21,6 +21,9 @@ class StorageConfig(BaseModel):
     # Azure Blob Storage
     container_name: Optional[str] = Field(None, description="Azure container name")
     account_name: Optional[str] = Field(None, description="Azure storage account name")
+    account_key: Optional[str] = Field(None, description="Azure storage account key")
+    connection_string: Optional[str] = Field(None, description="Azure storage connection string")
+    use_credential: Optional[bool] = Field(True, description="Use Azure default credential")
     
     # GCP Cloud Storage
     project_id: Optional[str] = Field(None, description="GCP project ID")
@@ -42,10 +45,12 @@ class DatabaseConfig(BaseModel):
     
     # Cloud databases
     endpoint: Optional[str] = Field(None, description="Database endpoint")
+    server: Optional[str] = Field(None, description="Database server (Azure SQL)")
     database: Optional[str] = Field(None, description="Database name")
     username: Optional[str] = Field(None, description="Database username")
     password: Optional[str] = Field(None, description="Database password")
     port: Optional[int] = Field(5432, description="Database port")
+    driver: Optional[str] = Field("ODBC Driver 17 for SQL Server", description="ODBC driver for Azure SQL")
 
     @validator('provider')
     def validate_provider(cls, v):
@@ -64,6 +69,26 @@ class OpenF1Config(BaseModel):
     years_to_fetch: list = Field([2019, 2020, 2021, 2022, 2023], description="Years to fetch data for")
 
 
+class ComputeConfig(BaseModel):
+    """Compute configuration for batch processing."""
+    provider: Optional[str] = Field("local", description="Compute provider (local, aws_batch, azure_batch, gcp_batch)")
+    
+    # AWS Batch
+    job_queue: Optional[str] = Field(None, description="AWS Batch job queue")
+    job_definition: Optional[str] = Field(None, description="AWS Batch job definition")
+    
+    # Azure Batch
+    batch_account_name: Optional[str] = Field(None, description="Azure Batch account name")
+    batch_account_url: Optional[str] = Field(None, description="Azure Batch account URL")
+    batch_account_key: Optional[str] = Field(None, description="Azure Batch account key")
+    resource_group: Optional[str] = Field(None, description="Azure resource group")
+    subscription_id: Optional[str] = Field(None, description="Azure subscription ID")
+    
+    # GCP Batch
+    project_id: Optional[str] = Field(None, description="GCP project ID")
+    region: Optional[str] = Field(None, description="GCP region")
+
+
 class LoggingConfig(BaseModel):
     """Logging configuration."""
     level: str = Field("INFO", description="Logging level")
@@ -79,6 +104,7 @@ class Settings(BaseModel):
     environment: str = Field("local", description="Environment (local, aws, azure, gcp)")
     storage: StorageConfig
     database: DatabaseConfig
+    compute: ComputeConfig = Field(default_factory=ComputeConfig)
     openf1: OpenF1Config = Field(default_factory=OpenF1Config)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     
@@ -122,12 +148,18 @@ class Settings(BaseModel):
         config = {
             "storage": self.storage.dict(),
             "database": self.database.dict(),
+            "compute": self.compute.dict(),
         }
         
         # Add environment-specific configs
         if self.environment == "aws":
             config.update({
                 "region": self.storage.region
+            })
+        elif self.environment == "azure":
+            config.update({
+                "resource_group": self.compute.resource_group,
+                "subscription_id": self.compute.subscription_id
             })
         elif self.environment == "gcp":
             config.update({

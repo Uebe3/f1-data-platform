@@ -13,6 +13,7 @@ alembic>=1.11.0
 # Database drivers
 psycopg2-binary>=2.9.0  # PostgreSQL
 pymongo>=4.4.0          # MongoDB
+pyodbc>=4.0.34          # SQL Server / Azure SQL Database
 sqlite3>=3.0.0          # SQLite (built-in)
 
 # Cloud providers
