@@ -10,13 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def run_local_data_pipeline():
     """Run F1 pipeline with output to local-data folder."""
-    print("🏎️ F1 Pipeline - Local Data Output")
+    print("🏎️ F1 Data Platform - Local Data Output")
     print("=" * 50)
     
     try:
-        from f1_pipeline.config.settings import Settings, StorageConfig, DatabaseConfig
-        from f1_pipeline.cloud_swap import CloudProviderFactory
-        from f1_pipeline.extractors import DataExtractor
+        from f1_data_platform.config.settings import Settings, StorageConfig, DatabaseConfig
+        from f1_data_platform.cloud_swap import CloudProviderFactory
+        from f1_data_platform.extractors import DataExtractor
         import pandas as pd
         from datetime import datetime
         

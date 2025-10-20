@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 from datetime import datetime
 
-from f1_pipeline.config.settings import Settings, StorageConfig, DatabaseConfig
-from f1_pipeline.cloud_swap import CloudProviderFactory
-from f1_pipeline.extractors import OpenF1Client
+from f1_data_platform.config.settings import Settings, StorageConfig, DatabaseConfig
+from f1_data_platform.cloud_swap import CloudProviderFactory
+from f1_data_platform.extractors import OpenF1Client
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import requests
 
-from f1_pipeline.extractors.openf1_client import OpenF1Client, APIEndpoint
+from f1_data_platform.extractors.openf1_client import OpenF1Client, APIEndpoint
 
 
 class TestAPIEndpoint:

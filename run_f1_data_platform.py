@@ -9,13 +9,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def run_practical_extraction():
     """Run F1 data extraction with practical limits."""
-    print("🏎️ F1 Pipeline - Practical Data Extraction")
+    print("🏎️ F1 Data Platform - Practical Data Extraction")
     print("=" * 50)
     
     try:
-        from f1_pipeline.config.settings import Settings, StorageConfig, DatabaseConfig
-        from f1_pipeline.cloud_swap import CloudProviderFactory
-        from f1_pipeline.extractors import DataExtractor
+        from f1_data_platform.config.settings import Settings, StorageConfig, DatabaseConfig
+        from f1_data_platform.cloud_swap import CloudProviderFactory
+        from f1_data_platform.extractors import DataExtractor
         
         # Setup
         settings = Settings(
@@ -104,6 +104,6 @@ def run_practical_extraction():
 if __name__ == "__main__":
     success = run_practical_extraction()
     if success:
-        print(f"\n🏁 F1 Pipeline is working! Ready for Formula 1 data analysis!")
+        print(f"\n🏁 F1 Data Platform is working! Ready for Formula 1 data analysis!")
     else:
         print(f"\n❌ There were issues. Check the error messages above.")

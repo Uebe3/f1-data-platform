@@ -7,10 +7,10 @@ import shutil
 from unittest.mock import patch, MagicMock
 import pandas as pd
 
-from f1_pipeline.config.settings import Settings, StorageConfig, DatabaseConfig
-from f1_pipeline.cloud_swap import CloudProviderFactory
-from f1_pipeline.extractors import DataExtractor
-from f1_pipeline.transformers import DataTransformer, AIPreparationTransformer
+from f1_data_platform.config.settings import Settings, StorageConfig, DatabaseConfig
+from f1_data_platform.cloud_swap import CloudProviderFactory
+from f1_data_platform.extractors import DataExtractor
+from f1_data_platform.transformers import DataTransformer, AIPreparationTransformer
 
 
 @pytest.mark.integration
@@ -238,7 +238,7 @@ class TestAWSIntegration:
     def test_aws_s3_operations(self, mock_boto_client, aws_config):
         """Test AWS S3 operations with mocking."""
         try:
-            from f1_pipeline.cloud_swap.providers.aws import AWSStorageProvider
+            from f1_data_platform.cloud_swap.providers.aws import AWSStorageProvider
             
             # Setup mock S3 client
             mock_s3 = MagicMock()
@@ -345,7 +345,7 @@ class TestDataQuality:
     
     def test_schema_validation(self, pipeline_setup):
         """Test schema validation during data processing."""
-        from f1_pipeline.models.schemas import SchemaManager
+        from f1_data_platform.models.schemas import SchemaManager
         
         schema_manager = SchemaManager()
         

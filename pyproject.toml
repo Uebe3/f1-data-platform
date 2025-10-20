@@ -4,7 +4,7 @@ addopts = [
     "-ra",
     "--strict-markers", 
     "--strict-config",
-    "--cov=f1_pipeline",
+    "--cov=f1_data_platform",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml"

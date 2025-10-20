@@ -1,4 +1,4 @@
-# F1 Pipeline - Formula 1 Data Analytics Platform
+# F1 Data Platform - Formula 1 Data Analytics Platform
 
 A comprehensive, cloud-agnostic data analytics platform for Formula 1 racing data. This system extracts real-time and historical F1 data from the OpenF1 API, processes it through multiple analytical layers, and prepares features for AI/ML applications.
 
@@ -15,7 +15,7 @@ A comprehensive, cloud-agnostic data analytics platform for Formula 1 racing dat
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    F1 Pipeline Architecture                 │
+│                 F1 Data Platform Architecture               │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────────┐    ┌──────────────┐    ┌─────────────┐     │
@@ -75,10 +75,10 @@ A comprehensive, cloud-agnostic data analytics platform for Formula 1 racing dat
 
 4. **Basic usage**
    ```python
-   from f1_pipeline import F1Pipeline
+   from f1_data_platform import F1DataPlatform
    
-   # Initialize pipeline
-   pipeline = F1Pipeline(environment="local")
+   # Initialize platform
+   platform = F1DataPlatform(environment="local")
    
    # Extract data for 2023 season
    stats = pipeline.extract_year_data(2023)
@@ -107,8 +107,8 @@ Processed and aggregated data for analysis:
 ### Environment Variables
 ```bash
 # Basic configuration
-F1_PIPELINE_ENV=local          # local, development, production
-F1_PIPELINE_LOG_LEVEL=INFO     # DEBUG, INFO, WARNING, ERROR
+F1_DATA_PLATFORM_ENV=local          # local, development, production
+F1_DATA_PLATFORM_LOG_LEVEL=INFO     # DEBUG, INFO, WARNING, ERROR
 
 # Cloud provider selection
 F1_CLOUD_PROVIDER=local        # local, aws, azure, gcp
@@ -201,9 +201,9 @@ start htmlcov/index.html # Windows
 
 ### Basic Data Extraction
 ```python
-from f1_pipeline.config.settings import Settings
-from f1_pipeline.cloud_swap import CloudProviderFactory
-from f1_pipeline.extractors import DataExtractor
+from f1_data_platform.config.settings import Settings
+from f1_data_platform.cloud_swap import CloudProviderFactory
+from f1_data_platform.extractors import DataExtractor
 
 # Setup
 settings = Settings(environment="local")
@@ -218,7 +218,7 @@ print(f"Total records: {stats['total_records']}")
 
 ### Analytics Layer Processing
 ```python
-from f1_pipeline.transformers import DataTransformer
+from f1_data_platform.transformers import DataTransformer
 
 # Initialize transformer
 transformer = DataTransformer(settings, cloud_provider)
@@ -233,7 +233,7 @@ analytics_data = transformer.process_session_analytics(session_key)
 
 ### AI Feature Engineering
 ```python
-from f1_pipeline.transformers import AIPreparationTransformer
+from f1_data_platform.transformers import AIPreparationTransformer
 
 # Initialize AI transformer
 ai_transformer = AIPreparationTransformer(settings, cloud_provider)
@@ -282,7 +282,7 @@ print(f"Database Health: {cloud_health['database']}")
 ## 📁 Project Structure
 
 ```
-f1_pipeline/
+f1_data_platform/
 ├── __init__.py                 # Package initialization
 ├── config/
 │   ├── __init__.py
@@ -398,11 +398,11 @@ class AIPreparationTransformer:
 ### Local Development
 ```bash
 # Set environment
-export F1_PIPELINE_ENV=local
+export F1_DATA_PLATFORM_ENV=local
 export F1_CLOUD_PROVIDER=local
 
 # Run extraction
-python -m f1_pipeline.extractors.data_extractor --year 2023
+python -m f1_data_platform.extractors.data_extractor --year 2023
 ```
 
 ### AWS Deployment
@@ -411,7 +411,7 @@ python -m f1_pipeline.extractors.data_extractor --year 2023
 aws configure
 
 # Set environment variables
-export F1_PIPELINE_ENV=production
+export F1_DATA_PLATFORM_ENV=production
 export F1_CLOUD_PROVIDER=aws
 export AWS_S3_BUCKET=production-f1-data
 export AWS_RDS_ENDPOINT=prod.rds.amazonaws.com
@@ -428,10 +428,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY f1_pipeline/ ./f1_pipeline/
+COPY f1_data_platform/ ./f1_data_platform/
 COPY config.yaml .
 
-CMD ["python", "-m", "f1_pipeline.extractors.data_extractor", "--year", "2023"]
+CMD ["python", "-m", "f1_data_platform.extractors.data_extractor", "--year", "2023"]
 ```
 
 ## 🤝 Contributing
@@ -453,9 +453,9 @@ pip install -r requirements-dev.txt
 python run_tests.py --type unit
 
 # Run linting
-flake8 f1_pipeline/
-black f1_pipeline/
-mypy f1_pipeline/
+flake8 f1_data_platform/
+black f1_data_platform/
+mypy f1_data_platform/
 ```
 
 ## 📄 License

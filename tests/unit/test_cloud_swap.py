@@ -6,8 +6,8 @@ import pandas as pd
 import tempfile
 import os
 
-from f1_pipeline.cloud_swap.factory import CloudProviderFactory, get_cloud_provider
-from f1_pipeline.cloud_swap.providers.local import LocalCloudProvider, LocalStorageProvider, LocalDatabaseProvider
+from f1_data_platform.cloud_swap.factory import CloudProviderFactory, get_cloud_provider
+from f1_data_platform.cloud_swap.providers.local import LocalCloudProvider, LocalStorageProvider, LocalDatabaseProvider
 
 
 class TestCloudProviderFactory:
