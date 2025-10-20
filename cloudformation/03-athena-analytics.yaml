@@ -1,0 +1,383 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'F1 Data Platform - Athena Analytics with Iceberg Tables'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+    
+  ProjectName:
+    Type: String
+    Default: f1-data-platform
+    Description: Project name for resource naming
+    
+  DataLakeBucket:
+    Type: String
+    Description: S3 Data Lake bucket name (from foundation stack)
+    
+  GlueDatabase:
+    Type: String
+    Description: Glue database name (from foundation stack)
+    
+  AthenaWorkgroup:
+    Type: String
+    Description: Athena workgroup name (from foundation stack)
+
+Resources:
+  # Athena Named Queries for F1 Analytics
+  
+  # Query: Top 10 Fastest Lap Times by Driver
+  FastestLapsQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-fastest-laps-${Environment}'
+      Description: 'Get top 10 fastest lap times by driver across all sessions'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: |
+        WITH fastest_laps AS (
+          SELECT 
+            d.full_name as driver_name,
+            d.team_name,
+            l.lap_time,
+            m.meeting_name,
+            s.session_name,
+            l.lap_number,
+            ROW_NUMBER() OVER (PARTITION BY l.driver_number ORDER BY l.lap_time ASC) as lap_rank
+          FROM f1_laps l
+          JOIN f1_drivers d ON l.driver_number = d.driver_number
+          JOIN f1_sessions s ON l.session_key = s.session_key
+          JOIN f1_meetings m ON s.meeting_key = m.meeting_key
+          WHERE l.lap_time IS NOT NULL
+            AND l.lap_time > 0
+            AND s.session_type = 'Race'
+        )
+        SELECT 
+          driver_name,
+          team_name,
+          lap_time,
+          meeting_name,
+          session_name,
+          lap_number
+        FROM fastest_laps
+        WHERE lap_rank = 1
+        ORDER BY lap_time ASC
+        LIMIT 10;
+
+  # Query: Driver Championship Points by Season
+  ChampionshipPointsQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-championship-points-${Environment}'
+      Description: 'Calculate championship points by driver for each season'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: |
+        WITH race_results AS (
+          SELECT 
+            d.full_name as driver_name,
+            d.team_name,
+            m.year,
+            m.meeting_name,
+            COUNT(*) as races_completed,
+            -- Points calculation based on position (simplified)
+            SUM(
+              CASE 
+                WHEN p.position = 1 THEN 25
+                WHEN p.position = 2 THEN 18
+                WHEN p.position = 3 THEN 15
+                WHEN p.position = 4 THEN 12
+                WHEN p.position = 5 THEN 10
+                WHEN p.position = 6 THEN 8
+                WHEN p.position = 7 THEN 6
+                WHEN p.position = 8 THEN 4
+                WHEN p.position = 9 THEN 2
+                WHEN p.position = 10 THEN 1
+                ELSE 0
+              END
+            ) as total_points
+          FROM f1_positions p
+          JOIN f1_drivers d ON p.driver_number = d.driver_number
+          JOIN f1_sessions s ON p.session_key = s.session_key
+          JOIN f1_meetings m ON s.meeting_key = m.meeting_key
+          WHERE s.session_type = 'Race'
+          GROUP BY d.full_name, d.team_name, m.year, m.meeting_name
+        )
+        SELECT 
+          year,
+          driver_name,
+          team_name,
+          SUM(total_points) as championship_points,
+          COUNT(DISTINCT meeting_name) as races_participated,
+          RANK() OVER (PARTITION BY year ORDER BY SUM(total_points) DESC) as championship_position
+        FROM race_results
+        GROUP BY year, driver_name, team_name
+        ORDER BY year DESC, championship_points DESC;
+
+  # Query: Team Performance Analysis
+  TeamPerformanceQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-team-performance-${Environment}'
+      Description: 'Analyze team performance across seasons'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: |
+        WITH team_stats AS (
+          SELECT 
+            d.team_name,
+            m.year,
+            m.meeting_name,
+            s.session_name,
+            COUNT(DISTINCT d.driver_number) as drivers_count,
+            AVG(CAST(l.lap_time AS DOUBLE)) as avg_lap_time,
+            MIN(CAST(l.lap_time AS DOUBLE)) as fastest_lap_time,
+            COUNT(l.lap_number) as total_laps
+          FROM f1_laps l
+          JOIN f1_drivers d ON l.driver_number = d.driver_number
+          JOIN f1_sessions s ON l.session_key = s.session_key
+          JOIN f1_meetings m ON s.meeting_key = m.meeting_key
+          WHERE l.lap_time IS NOT NULL
+            AND l.lap_time > 0
+          GROUP BY d.team_name, m.year, m.meeting_name, s.session_name
+        )
+        SELECT 
+          team_name,
+          year,
+          COUNT(DISTINCT meeting_name) as races_participated,
+          AVG(drivers_count) as avg_drivers_per_race,
+          AVG(avg_lap_time) as season_avg_lap_time,
+          MIN(fastest_lap_time) as season_fastest_lap,
+          SUM(total_laps) as season_total_laps,
+          RANK() OVER (PARTITION BY year ORDER BY AVG(avg_lap_time) ASC) as performance_rank
+        FROM team_stats
+        GROUP BY team_name, year
+        ORDER BY year DESC, season_avg_lap_time ASC;
+
+  # Query: Session Statistics Dashboard
+  SessionStatsQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-session-statistics-${Environment}'
+      Description: 'Comprehensive session statistics for dashboard'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: |
+        SELECT 
+          m.meeting_name,
+          m.year,
+          m.country_name,
+          m.circuit_short_name,
+          s.session_name,
+          s.session_type,
+          s.date_start,
+          s.date_end,
+          COUNT(DISTINCT d.driver_number) as participating_drivers,
+          COUNT(DISTINCT d.team_name) as participating_teams,
+          COUNT(l.lap_number) as total_laps_recorded,
+          AVG(CAST(l.lap_time AS DOUBLE)) as average_lap_time,
+          MIN(CAST(l.lap_time AS DOUBLE)) as fastest_lap_time,
+          MAX(CAST(l.lap_time AS DOUBLE)) as slowest_lap_time,
+          STDDEV(CAST(l.lap_time AS DOUBLE)) as lap_time_variation
+        FROM f1_meetings m
+        JOIN f1_sessions s ON m.meeting_key = s.meeting_key
+        LEFT JOIN f1_laps l ON s.session_key = l.session_key
+        LEFT JOIN f1_drivers d ON l.driver_number = d.driver_number
+        WHERE l.lap_time IS NOT NULL 
+          AND l.lap_time > 0
+        GROUP BY 
+          m.meeting_name, m.year, m.country_name, m.circuit_short_name,
+          s.session_name, s.session_type, s.date_start, s.date_end
+        ORDER BY m.year DESC, s.date_start DESC;
+
+  # Query: Driver Consistency Analysis
+  DriverConsistencyQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-driver-consistency-${Environment}'
+      Description: 'Analyze driver consistency across sessions'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: |
+        WITH lap_stats AS (
+          SELECT 
+            d.full_name as driver_name,
+            d.team_name,
+            m.year,
+            s.session_type,
+            COUNT(l.lap_number) as total_laps,
+            AVG(CAST(l.lap_time AS DOUBLE)) as avg_lap_time,
+            STDDEV(CAST(l.lap_time AS DOUBLE)) as lap_time_stddev,
+            MIN(CAST(l.lap_time AS DOUBLE)) as best_lap_time,
+            MAX(CAST(l.lap_time AS DOUBLE)) as worst_lap_time,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST(l.lap_time AS DOUBLE)) as median_lap_time
+          FROM f1_laps l
+          JOIN f1_drivers d ON l.driver_number = d.driver_number
+          JOIN f1_sessions s ON l.session_key = s.session_key
+          JOIN f1_meetings m ON s.meeting_key = m.meeting_key
+          WHERE l.lap_time IS NOT NULL
+            AND l.lap_time > 0
+          GROUP BY d.full_name, d.team_name, m.year, s.session_type
+        )
+        SELECT 
+          driver_name,
+          team_name,
+          year,
+          session_type,
+          total_laps,
+          ROUND(avg_lap_time, 3) as avg_lap_time,
+          ROUND(lap_time_stddev, 3) as consistency_score,
+          ROUND(best_lap_time, 3) as best_lap_time,
+          ROUND(worst_lap_time, 3) as worst_lap_time,
+          ROUND(median_lap_time, 3) as median_lap_time,
+          ROUND((lap_time_stddev / avg_lap_time) * 100, 2) as coefficient_of_variation
+        FROM lap_stats
+        WHERE total_laps >= 10  -- Filter out sessions with too few laps
+        ORDER BY year DESC, session_type, coefficient_of_variation ASC;
+
+  # Create Iceberg Tables via DDL
+  
+  # F1 Meetings Iceberg Table
+  F1MeetingsIcebergTable:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-create-meetings-iceberg-${Environment}'
+      Description: 'Create F1 meetings Iceberg table'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: !Sub |
+        CREATE TABLE IF NOT EXISTS f1_meetings_iceberg (
+          meeting_key bigint,
+          meeting_name string,
+          meeting_official_name string,
+          location string,
+          country_key bigint,
+          country_code string,
+          country_name string,
+          circuit_key bigint,
+          circuit_short_name string,
+          date_start timestamp,
+          year int,
+          gmt_offset string,
+          ingestion_timestamp timestamp
+        )
+        USING ICEBERG
+        LOCATION 's3://${DataLakeBucket}/iceberg-tables/f1_meetings/'
+        TBLPROPERTIES (
+          'table_type'='ICEBERG',
+          'format'='parquet',
+          'write.parquet.compression-codec'='snappy'
+        );
+
+  # F1 Sessions Iceberg Table
+  F1SessionsIcebergTable:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-create-sessions-iceberg-${Environment}'
+      Description: 'Create F1 sessions Iceberg table'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: !Sub |
+        CREATE TABLE IF NOT EXISTS f1_sessions_iceberg (
+          session_key bigint,
+          session_name string,
+          session_type string,
+          date_start timestamp,
+          date_end timestamp,
+          gmt_offset string,
+          meeting_key bigint,
+          ingestion_timestamp timestamp
+        )
+        USING ICEBERG
+        LOCATION 's3://${DataLakeBucket}/iceberg-tables/f1_sessions/'
+        TBLPROPERTIES (
+          'table_type'='ICEBERG',
+          'format'='parquet',
+          'write.parquet.compression-codec'='snappy'
+        );
+
+  # F1 Drivers Iceberg Table
+  F1DriversIcebergTable:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-create-drivers-iceberg-${Environment}'
+      Description: 'Create F1 drivers Iceberg table'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: !Sub |
+        CREATE TABLE IF NOT EXISTS f1_drivers_iceberg (
+          driver_number int,
+          broadcast_name string,
+          full_name string,
+          name_acronym string,
+          team_name string,
+          team_colour string,
+          first_name string,
+          last_name string,
+          headshot_url string,
+          country_code string,
+          session_key bigint,
+          ingestion_timestamp timestamp
+        )
+        USING ICEBERG
+        LOCATION 's3://${DataLakeBucket}/iceberg-tables/f1_drivers/'
+        TBLPROPERTIES (
+          'table_type'='ICEBERG',
+          'format'='parquet',
+          'write.parquet.compression-codec'='snappy'
+        );
+
+  # F1 Laps Iceberg Table (Partitioned for Performance)
+  F1LapsIcebergTable:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Name: !Sub '${ProjectName}-create-laps-iceberg-${Environment}'
+      Description: 'Create F1 laps Iceberg table with partitioning'
+      Database: !Ref GlueDatabase
+      WorkGroup: !Ref AthenaWorkgroup
+      QueryString: !Sub |
+        CREATE TABLE IF NOT EXISTS f1_laps_iceberg (
+          date_start date,
+          session_key bigint,
+          driver_number int,
+          lap_number int,
+          lap_duration double,
+          lap_time double,
+          i1_speed double,
+          i2_speed double,
+          st_speed double,
+          is_personal_best boolean,
+          compound string,
+          tyre_life int,
+          fresh_tyre boolean,
+          ingestion_timestamp timestamp
+        )
+        USING ICEBERG
+        PARTITIONED BY (date_start)
+        LOCATION 's3://${DataLakeBucket}/iceberg-tables/f1_laps/'
+        TBLPROPERTIES (
+          'table_type'='ICEBERG',
+          'format'='parquet',
+          'write.parquet.compression-codec'='snappy'
+        );
+
+Outputs:
+  FastestLapsQueryName:
+    Description: 'Fastest laps named query'
+    Value: !Ref FastestLapsQuery
+    Export:
+      Name: !Sub '${AWS::StackName}-FastestLapsQuery'
+      
+  ChampionshipPointsQueryName:
+    Description: 'Championship points named query'
+    Value: !Ref ChampionshipPointsQuery
+    Export:
+      Name: !Sub '${AWS::StackName}-ChampionshipPointsQuery'
+      
+  TeamPerformanceQueryName:
+    Description: 'Team performance named query'
+    Value: !Ref TeamPerformanceQuery
+    Export:
+      Name: !Sub '${AWS::StackName}-TeamPerformanceQuery'

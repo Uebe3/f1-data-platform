@@ -1,0 +1,31 @@
+environment: aws_modern
+
+storage:
+  provider: aws
+  bucket_name: f1-data-lake-dev-123456789012  # Replace with your account ID
+  region: us-east-1
+
+database:
+  provider: aws_athena
+  athena_workgroup: f1-data-platform-dev
+  athena_database: f1_data_platform_dev
+  athena_output_location: s3://f1-platform-athena-results-dev-123456789012/queries/  # Replace with your account ID
+
+compute:
+  provider: aws_lambda
+  lambda_function_name: f1-data-platform-data-processor-dev
+  lambda_timeout: 900
+  lambda_memory: 1024
+  region: us-east-1
+
+openf1:
+  base_url: "https://api.openf1.org/v1"
+  rate_limit_delay: 0.1
+  max_retries: 3
+  timeout: 30
+  years_to_fetch: [2019, 2020, 2021, 2022, 2023]
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_path: null
