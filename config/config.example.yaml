@@ -1,0 +1,52 @@
+# F1 Pipeline Configuration Template
+# Copy this file to config.yaml and modify as needed
+
+# Environment: local, aws, azure, gcp
+environment: local
+
+# Storage configuration
+storage:
+  provider: local  # local, aws, azure, gcp
+  
+  # Local storage (when provider: local)
+  local_path: "./local-data"
+  
+  # AWS S3 (when provider: aws)
+  # bucket_name: "my-f1-data-bucket"
+  # region: "us-east-1"
+  
+  # Azure Blob Storage (when provider: azure)
+  # container_name: "f1-data"
+  # account_name: "mystorageaccount"
+  
+  # GCP Cloud Storage (when provider: gcp)
+  # bucket_name: "my-f1-data-bucket"
+  # project_id: "my-gcp-project"
+
+# Database configuration
+database:
+  provider: local  # local, aws_rds, azure_sql, gcp_sql
+  
+  # Local SQLite (when provider: local)
+  db_path: "./local-data/f1_pipeline.db"
+  
+  # Cloud databases (when provider: aws_rds, azure_sql, gcp_sql)
+  # endpoint: "my-db-instance.region.rds.amazonaws.com"
+  # database: "f1_pipeline"
+  # username: "f1user"
+  # password: "secure_password"
+  # port: 5432
+
+# OpenF1 API configuration
+openf1:
+  base_url: "https://api.openf1.org/v1"
+  rate_limit_delay: 0.1  # seconds between requests
+  max_retries: 3
+  timeout: 30
+  years_to_fetch: [2019, 2020, 2021, 2022, 2023]
+
+# Logging configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  # file_path: "./logs/f1_pipeline.log"  # Optional: log to file

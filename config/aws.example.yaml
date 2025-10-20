@@ -1,0 +1,31 @@
+# AWS Configuration Example
+environment: aws
+
+storage:
+  provider: aws
+  bucket_name: "my-f1-data-bucket"
+  region: "us-east-1"
+
+database:
+  provider: aws_rds
+  endpoint: "f1-pipeline-db.cluster-xyz.us-east-1.rds.amazonaws.com"
+  database: "f1_pipeline"
+  username: "f1admin"
+  password: "${F1_DB_PASSWORD}"  # Use environment variable
+  port: 5432
+
+# Compute configuration for AWS Batch (optional)
+compute:
+  job_queue: "f1-pipeline-queue"
+  job_definition: "f1-pipeline-job-def"
+
+openf1:
+  base_url: "https://api.openf1.org/v1"
+  rate_limit_delay: 0.1
+  max_retries: 5  # Higher for production
+  timeout: 60
+  years_to_fetch: [2019, 2020, 2021, 2022, 2023]
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
